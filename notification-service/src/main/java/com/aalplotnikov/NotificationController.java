@@ -1,20 +1,29 @@
 package com.aalplotnikov;
 
+import com.aalplotnikov.DTO.NotificationRequestDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class NotificationController {
 
-    NotificationService service;
+    NotificationService notificationService;
 
-    public NotificationController(NotificationService service) {
-        this.service = service;
+    public NotificationController(NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 
-    @GetMapping
-    public void send() {
-        service.send("aalplotnikov@gmail.com", "Загловок", "Hello world");
+    @PostMapping("/notification")
+    public ResponseEntity<Void> save(
+            @RequestBody
+            NotificationRequestDTO notificationRequestDTO
+    ) {
+        notificationService.notify(notificationRequestDTO.email(), notificationRequestDTO.operation());
+        return ResponseEntity.noContent().build();
     }
 }
