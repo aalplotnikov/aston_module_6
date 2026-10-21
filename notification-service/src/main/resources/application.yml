@@ -12,6 +12,16 @@ spring:
           auth: true
           ssl:
             enable: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: "notification-consumer-group"
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.type.mapping: "com.aalplotnikov.DTO.UserEventDTO:com.aalplotnikov.DTO.NotificationRequestDTO"
 
 server:
   port: 8081

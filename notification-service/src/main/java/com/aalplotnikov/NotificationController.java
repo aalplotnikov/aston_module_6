@@ -23,7 +23,7 @@ public class NotificationController {
             @RequestBody
             NotificationRequestDTO notificationRequestDTO
     ) {
-        notificationService.notify(notificationRequestDTO.email(), notificationRequestDTO.operation());
+        notificationService.notify(notificationRequestDTO);
         return ResponseEntity.noContent().build();
     }
 }

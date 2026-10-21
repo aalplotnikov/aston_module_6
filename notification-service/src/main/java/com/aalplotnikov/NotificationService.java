@@ -1,7 +1,11 @@
 package com.aalplotnikov;
 
+import com.aalplotnikov.DTO.NotificationRequestDTO;
 import com.aalplotnikov.DTO.Operation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -13,6 +17,8 @@ public class NotificationService {
     private final String TEXT_CREATE = "Здравствуйте! Ваш аккаунт на сайте был успешно создан";
     private final String TEXT_DELETE = "Здравствуйте! Ваш аккаунт был удалён";
 
+    private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
+
     private final JavaMailSender mailSender;
     private final String from;
 
@@ -23,16 +29,31 @@ public class NotificationService {
         this.from = from;
     }
 
-    public void notify (String email, Operation operation) {
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Email не должен быть пустым");
+    @KafkaListener(topics = "notification-topic", groupId = "notification-consumer-group")
+    public void notify (NotificationRequestDTO notificationRequestDTO) {
+        if (notificationRequestDTO == null) {
+            log.error("Получено пустое сообщение (null) из Kafka");
+            return;
         }
-        if (operation == null) {
-            throw new IllegalArgumentException("Операция обязательна");
+
+        if (notificationRequestDTO.email() == null || notificationRequestDTO.email().isBlank()) {
+            log.error("Критическая ошибка: Email в сообщении пустой или null. Пропускаем обработку.");
+            return; // Просто выходим из метода, сдвигая оффсет
         }
-        switch (operation) {
-            case CREATE -> send(email, SUBJECT_CREATE, TEXT_CREATE);
-            case DELETE -> send(email, SUBJECT_DELETE, TEXT_DELETE);
+
+        if (notificationRequestDTO.operation() == null) {
+            log.error("Критическая ошибка: В сообщении отсутствует тип операции. Пропускаем обработку.");
+            return;
+        }
+
+        log.info("Начало обработки уведомления для: {}, операция: {}",
+                notificationRequestDTO.email(), notificationRequestDTO.operation());
+
+        switch (notificationRequestDTO.operation()) {
+            case CREATE -> send(notificationRequestDTO.email(), SUBJECT_CREATE, TEXT_CREATE);
+            case DELETE -> send(notificationRequestDTO.email(), SUBJECT_DELETE, TEXT_DELETE);
+            default -> log.warn("Получена операция {}, для которой нет шаблона отправки",
+                    notificationRequestDTO.operation());
         }
     }
 
@@ -44,5 +65,7 @@ public class NotificationService {
         message.setText(text);
 
         mailSender.send(message);
+
+        log.info("Соббщение на email отправлено");
     }
 }

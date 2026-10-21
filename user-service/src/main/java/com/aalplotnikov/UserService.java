@@ -1,23 +1,27 @@
 package com.aalplotnikov;
 
+import com.aalplotnikov.DTO.Operation;
+import com.aalplotnikov.DTO.UserEventDTO;
 import com.aalplotnikov.DTO.UserRequestDTO;
 import com.aalplotnikov.DTO.UserResponseDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.NoSuchElementException;
-import java.util.Scanner;
 
 @Service
 public class UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
+    private final KafkaTemplate<String, UserEventDTO> kafkaTemplate;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, KafkaTemplate<String, UserEventDTO> kafkaTemplate) {
         this.userRepository = userRepository;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public UserResponseDTO save (UserRequestDTO user) {
@@ -26,6 +30,7 @@ public class UserService {
                     new User(user.name(), user.email(), user.age())
             );
             log.info("Пользователь сохранен с id " + userEntity.getId());
+            kafkaTemplate.send("notification-topic", new UserEventDTO(userEntity.getEmail(), Operation.CREATE));
             return new UserResponseDTO(
                     userEntity.getId(),
                     userEntity.getName(),
@@ -90,8 +95,10 @@ public class UserService {
 
     public void delete(Long id) {
         try {
+            User userEntity = userRepository.findById(id).orElseThrow();
             userRepository.deleteById(id);
             log.info("Пользователь удален с id " + id);
+            kafkaTemplate.send("notification-topic", new UserEventDTO(userEntity.getEmail(), Operation.DELETE));
         } catch (DataAccessException e) {
             log.error("Ошибка Пользователь не удален", e);
             throw e;
