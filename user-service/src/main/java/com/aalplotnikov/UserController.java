@@ -62,24 +62,6 @@ public class UserController {
     ) {
         UserResponseDTO  userResponseDTO = userService.findById(id);
 
-//        EntityModel<UserResponseDTO> model = EntityModel.of(userResponseDTO);
-//
-//        model.add(
-//                linkTo(methodOn(UserController.class)
-//                        .get(id))
-//                        .withSelfRel(),
-//
-//                linkTo(methodOn(UserController.class)
-//                        .update(id, null))
-//                        .withRel("update"),
-//
-//                linkTo(methodOn(UserController.class)
-//                        .delete(id))
-//                        .withRel("delete")
-//        );
-
-
-
         return ResponseEntity.ok(userModelAssembler.toModel(userResponseDTO));
     }
 
